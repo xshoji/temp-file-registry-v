@@ -1,6 +1,6 @@
 # temp-file-registry-v
 
-Temporal file registry written by vlang.
+temp-file-registry-v Temporal file registry written by vlang.
 
 ```
 # help
@@ -49,3 +49,10 @@ curl --location --request POST 'http://localhost:8888/temp-file-registry-v/api/v
 # delete: if "true" specified, target file will be deleted after response.
 curl "http://localhost:8888/temp-file-registry-v/api/v1/download?key=kioveyzrrt287opddhk9&delete=true" -o /tmp/app2
 ```
+
+
+## References
+
+> global-variables - v/docs.md at master · vlang/v  
+> https://github.com/vlang/v/blob/master/doc/docs.md#global-variables  
+
