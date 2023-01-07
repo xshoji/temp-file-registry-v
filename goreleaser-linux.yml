@@ -1,0 +1,34 @@
+builds:
+  - id: '1'
+    main: dummy.go
+    goos:
+      - linux
+    goarch:
+      - amd64
+    binary: app
+    hooks:
+      post: v -prod -o "dist/1_{{ .Os }}_{{ .Arch }}_v1/app" -os "linux" -message-limit 0 main.v;
+
+# archives.replacements - Deprecation notices - GoReleaser https://goreleaser.com/deprecations/?h=replacements#archivesreplacements
+archives:
+  - id: main
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    replacements:
+      linux: linux
+      darwin: macos
+      windows: windows
+      #     いらないので無効化
+      #     386: i386
+      amd64: x86_64
+
+# プロジェクトの完全なビルドを生成したいが、何も検証したくないし、どこかにアップロードもしたくないという場合があります。
+# GoReleaser は --snapshot フラグとスナップショット カスタマイズ セクションでこれをサポートします。
+# snapshots - Snapshots - GoReleaser https://goreleaser.com/customization/snapshots/?h=snapshot#snapshots
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

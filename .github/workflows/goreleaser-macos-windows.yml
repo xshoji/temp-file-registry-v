@@ -1,0 +1,48 @@
+name: goreleaser-macos-windows
+
+on:
+  push:
+    tags: #vX.X.Xというタグのときにリリースする
+      - "v[0-9]+.[0-9]+.[0-9]+-macos-windows"
+jobs:
+  goreleaser-macos-windows:
+    runs-on: macos-12
+    # installing-software-on-macos-runners - GitHub ホステッド ランナーのカスタマイズ - GitHub Docs
+    # https://docs.github.com/ja/actions/using-github-hosted-runners/customizing-github-hosted-runners#installing-software-on-macos-runners
+    steps:
+      -
+        name: Install V
+        run: brew install vlang
+      -
+        name: Show v version
+        run: v version
+      -
+        name: Update v
+        run: v up
+      -
+        name: Show updated v version
+        run: v version
+      -
+        name: Install mingw-w64 ( to build v app for windows )
+        run: brew install mingw-w64
+      -
+        name: Install Go
+        run: brew install go@1.18
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      -
+        name: Put goreleaser.yml
+        run: cp goreleaser-macos-windows.yml .goreleaser.yml
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          # environment-variables - GitHub Actions - GoReleaser https://goreleaser.com/ci/actions/#environment-variables
+          # i-3 - GitHub Actionsの使い方 | 純規の暇人趣味ブログ https://jyn.jp/github-actions-usage/#i-3
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -32,9 +32,9 @@ v . -o /tmp/app
 /tmp/app
 ```
 
-## API
+# API
 
-### Upload
+## Upload
 
 ```
 curl --location --request POST 'http://localhost:8888/temp-file-registry-v/api/v1/upload' \
@@ -43,15 +43,33 @@ curl --location --request POST 'http://localhost:8888/temp-file-registry-v/api/v
 {"message":"key:kioveyzrrt287opddhk9, expiryTimeMinutes:10, fileHeader:map[Content-Disposition:[form-data; name="file"; filename="app"] Content-Type:[application/octet-stream]]"}
 ```
 
-### Download
+## Download
 
 ```
 # delete: if "true" specified, target file will be deleted after response.
 curl "http://localhost:8888/temp-file-registry-v/api/v1/download?key=kioveyzrrt287opddhk9&delete=true" -o /tmp/app2
 ```
 
+# Release
 
-## References
+```
+# Release for linux
+git tag v0.0.1-linux -m "Release beta version." && git push --tags
+
+# Release for macOS and windows
+git tag v0.0.1-macos-windows -m "Release beta version." && git push --tags
+
+
+
+# Delete tag
+echo "v0.0.1-linux" |xargs -I{} bash -c "git tag -d {} && git push origin :{}"
+
+# Delete tag and recreate new tag and push
+echo "v0.0.2-linux" |xargs -I{} bash -c "git tag -d {} && git push origin :{}; git tag {} -m \"Release beta version.\"; git push --tags"
+```
+
+
+# References
 
 > global-variables - v/docs.md at master · vlang/v  
 > https://github.com/vlang/v/blob/master/doc/docs.md#global-variables  
