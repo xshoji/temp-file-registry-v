@@ -2,6 +2,13 @@
 
 temp-file-registry-v Temporal file registry written by vlang.
 
+In case of Linux, needs install "musl-dev".
+
+```
+# ubuntu
+apt-get install musl-dev
+```
+
 ```
 # help
 v run main.v -h
