@@ -25,6 +25,7 @@ fn logging(level log.Level, value string) {
 		.warn { term.yellow('WARN ') }
 		.info { term.white('INFO ') }
 		.debug { term.blue('DEBUG') }
+		else { '' } // never come here 
 	}
 	// print to stdout
 	if int(level) <= log_level_local {
