@@ -44,17 +44,16 @@ v . -o /tmp/app
 ## Upload
 
 ```
-curl --location --request POST 'http://localhost:8888/temp-file-registry-v/api/v1/upload' \
---form 'key="kioveyzrrt287opddhk9"' \
---form 'file=@"/private/tmp/app"'
-{"message":"key:kioveyzrrt287opddhk9, expiryTimeMinutes:10, fileHeader:map[Content-Disposition:[form-data; name="file"; filename="app"] Content-Type:[application/octet-stream]]"}
+curl -vvv -L -X POST "http://localhost:8080/temp-file-registry-v/api/v1/upload" -F "key=kioveyzrrt287opddhk9" -F "file=@/private/tmp/webapp.tar.gz"
+...
+{"form":{"key":"kioveyzrrt287opddhk9"},"file_name":"webapp.tar.gz","file_content_type":"application/octet-stream"}
 ```
 
 ## Download
 
 ```
 # delete: if "true" specified, target file will be deleted after response.
-curl "http://localhost:8888/temp-file-registry-v/api/v1/download?key=kioveyzrrt287opddhk9&delete=true" -o /tmp/app2
+curl -vvv -L -X GET "http://localhost:8080/temp-file-registry-v/api/v1/download?key=kioveyzrrt287opddhk9&delete=true" -o /tmp/webapp2.tar.gz
 ```
 
 # Release
