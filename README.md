@@ -1,6 +1,6 @@
 # temp-file-registry-v
 
-temp-file-registry-v Temporal file registry written by vlang.
+temp-file-registry-v is temporal file registry written by [vlang](https://github.com/vlang/v).
 
 In case of Linux, needs install "musl-dev".
 
