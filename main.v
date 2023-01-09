@@ -13,17 +13,19 @@ const (
 	log_level = $env('V_LOG_LEVEL')
 )
 
-struct App {
+struct WebApp {
 	vweb.Context
+	file_expiration_minutes shared int
+	max_file_size_mb        shared int
 mut:
 	file_registry_map shared map[string]FileRegistry
 }
 
 struct FileRegistry {
-	key                 string
-	expiry_time_minutes string
-	expired_at          time.Time
-	http_file           http.FileData
+	key                     string
+	file_expiration_minutes int
+	expired_at              time.Time
+	http_file               http.FileData
 }
 
 fn logging(level log.Level, value string) {
@@ -56,10 +58,9 @@ fn main() {
   (1:fatal, 2:error, 3:warn, 4:info, 5:debug) (default = 5:debug)')
 	args_port := fp.int('port', `p`, 8080, '[optional] port (default: 8080)')
 	args_help := fp.bool('help', `h`, false, 'help')
-	// args_file_expiration := fp.int('expiration', `e`, 10, '[optional] Default file expiration (minutes) (default: 10)')
-	// args_max_file_size := fp.int('max-file-size', `m`, 1024, '[optional] Max file size (MB) (default: 1024)')
+	args_file_expiration_minutes := fp.int('expiration', `e`, 10, '[optional] Default file expiration (minutes) (default: 10)')
+	args_max_file_size_mb := fp.int('max-size', `m`, 1024, '[optional] Max file size (MB) (default: 1024)')
 
-	// Valid required options.
 	if args_help {
 		println(fp.usage())
 		return
@@ -67,7 +68,11 @@ fn main() {
 
 	// Start web application
 	logging(log.Level.info, 'Start temp-file-registry-v')
-	vweb.run(&App{}, args_port)
+	app := WebApp{
+		file_expiration_minutes: args_file_expiration_minutes
+		max_file_size_mb: args_max_file_size_mb
+	}
+	vweb.run(&app, args_port)
 }
 
 struct UploadResponse {
@@ -77,7 +82,7 @@ struct UploadResponse {
 }
 
 ['/temp-file-registry-v/api/v1/upload'; post]
-pub fn (mut app App) upload_endpoint() vweb.Result {
+pub fn (mut app WebApp) upload_endpoint() vweb.Result {
 	// logging(log.Level.info, app.req.str())
 	key := app.form['key'] or {
 		app.set_status(400, 'Invalid request.')
@@ -91,13 +96,22 @@ pub fn (mut app App) upload_endpoint() vweb.Result {
 			'message': 'Invalid request. file is required.'
 		})
 	}
-	logging(log.Level.info, 'key: ${key}')
-	// logging(log.Level.info, 'file: ${file.str()}')
+	mut default_file_expiration_minutes := 0
+	rlock app.file_expiration_minutes {
+		// Cannot cast app.file_expiration_minutes int to str directly. ( e.g. app.file_expiration_minutes.str() becomes 'a' )
+		default_file_expiration_minutes = app.file_expiration_minutes
+	}
+	file_expiration_minutes := app.form['expiration-minutes'] or {
+		default_file_expiration_minutes.str()
+	}.int()
+	logging(log.Level.info, '                    key: ${key}')
+	logging(log.Level.info, 'file_expiration_minutes: ${file_expiration_minutes}')
+	logging(log.Level.info, '       file size (byte): ${file.data.str().bytes().len}')
 	lock app.file_registry_map {
 		app.file_registry_map[key] = FileRegistry{
 			key: key
-			expiry_time_minutes: '10'
-			expired_at: time.now().add(10 * time.minute)
+			file_expiration_minutes: file_expiration_minutes
+			expired_at: time.now().add(file_expiration_minutes * time.minute)
 			http_file: file
 		}
 	}
@@ -109,7 +123,7 @@ pub fn (mut app App) upload_endpoint() vweb.Result {
 }
 
 ['/temp-file-registry-v/api/v1/download'; get]
-pub fn (mut app App) download_endpoint() vweb.Result {
+pub fn (mut app WebApp) download_endpoint() vweb.Result {
 	logging(log.Level.info, app.req.str())
 	key := app.query['key'] or {
 		app.set_status(400, 'Invalid request.')
@@ -117,12 +131,19 @@ pub fn (mut app App) download_endpoint() vweb.Result {
 			'message': 'Invalid request. key is required.'
 		})
 	}
-	delete := app.query['delete']
-	logging(log.Level.info, 'key: ${key}')
-	logging(log.Level.info, 'delete: ${delete}')
-	rlock app.file_registry_map {
+	delete := app.query['delete'] or { 'false' }
+	logging(log.Level.info, 'key: ${key}, delete: ${delete}')
+	lock app.file_registry_map {
 		file_registry := app.file_registry_map[key] or { return app.not_found() }
+		if time.now() > file_registry.expired_at {
+			app.file_registry_map.delete(key)
+			return vweb.not_found()
+		}
 		app.send_response_to_client('application/octet-stream', file_registry.http_file.data)
+		if delete == 'true' {
+			logging(log.Level.info, 'delete = key: ${key}, file_size: ${file_registry.http_file.data.str().bytes().len}')
+			app.file_registry_map.delete(key)
+		}
 	}
 	return app.ok('')
 }
