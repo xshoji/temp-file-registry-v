@@ -7,6 +7,9 @@ In case of Linux, needs install "musl-dev".
 ```
 # ubuntu
 apt-get install musl-dev
+
+# alpine
+apk add musl-dev gcompat
 ```
 
 ```
