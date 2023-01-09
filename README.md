@@ -44,20 +44,20 @@ v . -o /tmp/app
 ## Upload
 
 ```
-$ md5 /tmp/webapp.tar.gz
-MD5 (/tmp/webapp.tar.gz) = a9d8d8b3427e94fa883b41d50706d4df
-$ curl -vvv -L -X POST "http://localhost:8080/temp-file-registry-v/api/v1/upload" -F "key=kioveyzrrt" -F "file=@/tmp/webapp.tar.gz" -F "expiration-minutes=3"
+$ md5 /tmp/app
+MD5 (/tmp/app) = ab4f8fce1ff101a6579af0a2bfd02f2f
+$ curl -vvv -L -X POST "http://localhost:8080/temp-file-registry-v/api/v1/upload" -F "key=kioveyzrrt" -F "file=@/tmp/app" -F "expiration-minutes=3"
 ...
-{"form":{"key":"kioveyzrrt287opddhk9"},"file_name":"webapp.tar.gz","file_content_type":"application/octet-stream"}
+{"message":"key:kioveyzrrt, expired_at:2023-01-09 22:25:20.945, http_file.content_type:application/octet-stream, http_file.filename:app, http_file.data.bytes:2146824"}
 ```
 
 ## Download
 
 ```
 # delete: if "true" specified, target file will be deleted after response.
-$ curl -vvv -L -X GET "http://localhost:8080/temp-file-registry-v/api/v1/download?key=kioveyzrrt&delete=true" -o /tmp/webapp2.tar.gz
-$ md5 /tmp/webapp2.tar.gz
-MD5 (/tmp/webapp2.tar.gz) = a9d8d8b3427e94fa883b41d50706d4df
+$ curl -vvv -L -X GET "http://localhost:8080/temp-file-registry-v/api/v1/download?key=kioveyzrrt&delete=true" -o /tmp/app2
+$ $ md5 /tmp/app2
+MD5 (/tmp/app2) = ab4f8fce1ff101a6579af0a2bfd02f2f
 ```
 
 # Release

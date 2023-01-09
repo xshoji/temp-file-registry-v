@@ -28,6 +28,10 @@ struct FileRegistry {
 	http_file               http.FileData
 }
 
+fn (f FileRegistry) str() string {
+	return 'key:${f.key}, expired_at:${f.expired_at.format_ss_milli()}, http_file.content_type:${f.http_file.content_type}, http_file.filename:${f.http_file.filename}, http_file.data.bytes:${f.http_file.data.str().bytes().len}'
+}
+
 fn logging(level log.Level, value string) {
 	// get log level (default = 5:debug)
 	log_level_local := if log_level.int() > 0 { log_level.int() } else { 5 }
@@ -66,19 +70,15 @@ fn main() {
 		return
 	}
 
-	// Start web application
-	logging(log.Level.info, 'Start temp-file-registry-v')
 	app := WebApp{
 		file_expiration_minutes: args_file_expiration_minutes
 		max_file_size_mb: args_max_file_size_mb
 	}
+	// Clean expired file
+	spawn clean_expired_file(&app)
+	// Start web application
+	logging(log.Level.info, 'Start temp-file-registry-v')
 	vweb.run(&app, args_port)
-}
-
-struct UploadResponse {
-	form              map[string]string
-	file_name         string
-	file_content_type string
 }
 
 ['/temp-file-registry-v/api/v1/upload'; post]
@@ -104,9 +104,6 @@ pub fn (mut app WebApp) upload_endpoint() vweb.Result {
 	file_expiration_minutes := app.form['expiration-minutes'] or {
 		default_file_expiration_minutes.str()
 	}.int()
-	logging(log.Level.info, '                    key: ${key}')
-	logging(log.Level.info, 'file_expiration_minutes: ${file_expiration_minutes}')
-	logging(log.Level.info, '       file size (byte): ${file.data.str().bytes().len}')
 	lock app.file_registry_map {
 		app.file_registry_map[key] = FileRegistry{
 			key: key
@@ -114,12 +111,12 @@ pub fn (mut app WebApp) upload_endpoint() vweb.Result {
 			expired_at: time.now().add(file_expiration_minutes * time.minute)
 			http_file: file
 		}
+		logging(log.Level.info, '${app.file_registry_map[key].str()}')
+		return app.json({
+			'message': app.file_registry_map[key].str()
+		})
 	}
-	return app.json(UploadResponse{
-		form: app.form
-		file_name: file.filename
-		file_content_type: file.content_type
-	})
+	return app.ok('')
 }
 
 ['/temp-file-registry-v/api/v1/download'; get]
@@ -141,9 +138,23 @@ pub fn (mut app WebApp) download_endpoint() vweb.Result {
 		}
 		app.send_response_to_client('application/octet-stream', file_registry.http_file.data)
 		if delete == 'true' {
-			logging(log.Level.info, 'delete = key: ${key}, file_size: ${file_registry.http_file.data.str().bytes().len}')
+			logging(log.Level.info, 'delete = ${app.file_registry_map[key].str()}')
 			app.file_registry_map.delete(key)
 		}
 	}
 	return app.ok('')
+}
+
+fn clean_expired_file(app &WebApp) {
+	for {
+		time.sleep(time.minute * 1)
+		lock app.file_registry_map {
+			for key, file_registry in app.file_registry_map {
+				if time.now() > file_registry.expired_at {
+					logging(log.Level.info, 'delete = ${app.file_registry_map[key].str()}')
+					app.file_registry_map.delete(key)
+				}
+			}
+		}
+	}
 }
